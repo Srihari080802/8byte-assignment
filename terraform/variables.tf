@@ -49,7 +49,7 @@ variable "private_data_subnet_cidrs" {
 variable "container_port" {
   type        = number
   description = "Describes the Container port of ECS"
-  default     = 8080
+  default     = 80
 }
 
 variable "db_instance_class" {
@@ -76,3 +76,26 @@ variable "db_allocated_storage" {
   default     = 20
 }
 
+variable "container_image" {
+  type        = string
+  description = "Describes the image of the container"
+  default     = "nginx:alpine"
+}
+
+variable "task_cpu" {
+  type        = number
+  description = "Describes the CPU used for the task"
+  default     = 256
+}
+
+variable "task_memory" {
+  type        = number
+  description = "Describes the memory used for the task"
+  default     = 512
+}
+
+variable "desired_count" {
+  type        = number
+  description = "Describes the desired count used for the task"
+  default     = 1
+}
