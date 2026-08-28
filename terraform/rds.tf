@@ -23,7 +23,7 @@ resource "aws_secretsmanager_secret" "rds_db_secret" {
 }
 
 resource "aws_db_instance" "default" {
-  identifier              = "${var.project_name}-postgres"
+  identifier              = "db-${var.project_name}-postgres"
   db_name                 = var.db_name
   engine                  = "postgres"
   allocated_storage       = var.db_allocated_storage
@@ -41,3 +41,13 @@ resource "aws_db_instance" "default" {
   apply_immediately       = true
 }
 
+resource "aws_secretsmanager_secret_version" "db" {
+  secret_id = aws_secretsmanager_secret.rds_db_secret.id
+  secret_string = jsonencode({
+    username = var.db_username
+    password = random_password.password.result
+    host     = aws_db_instance.default.address
+    port     = 5432
+    dbname   = var.db_name
+  })
+}

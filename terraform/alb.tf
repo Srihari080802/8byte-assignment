@@ -5,7 +5,7 @@ resource "aws_lb" "alb" {
   security_groups    = [aws_security_group.alb_sg.id]
   subnets            = [for subnet in aws_subnet.public : subnet.id]
 
-  enable_deletion_protection = true
+  enable_deletion_protection = false
 
   tags = {
     Name = "${var.project_name}-alb"
@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "app" {
   target_type = "ip"
 
   health_check {
-    path                = "/health"
+    path                = "/"
     matcher             = "200"
     interval            = 30
     timeout             = 5
