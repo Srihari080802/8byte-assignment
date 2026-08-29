@@ -49,7 +49,7 @@ variable "private_data_subnet_cidrs" {
 variable "container_port" {
   type        = number
   description = "Describes the Container port of ECS"
-  default     = 80
+  default     = 8000
 }
 
 variable "db_instance_class" {
@@ -79,7 +79,7 @@ variable "db_allocated_storage" {
 variable "container_image" {
   type        = string
   description = "Describes the image of the container"
-  default     = "nginx:alpine"
+  default     = "570417736607.dkr.ecr.ap-south-1.amazonaws.com/8byte-app:latest"
 }
 
 variable "task_cpu" {

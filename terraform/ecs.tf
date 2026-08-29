@@ -46,6 +46,37 @@ resource "aws_ecs_task_definition" "app" {
           "awslogs-stream-prefix" = "ecs"
         }
       }
+
+      secrets = [
+        {
+          name      = "DATABASE_URL"
+          valueFrom = "${aws_secretsmanager_secret.rds_db_secret.arn}:DATABASE_URL::"
+        }
+      ]
     }
   ])
 }
+
+resource "aws_ecs_service" "app" {
+  name                              = "${var.project_name}-service"
+  cluster                           = aws_ecs_cluster.app.id
+  task_definition                   = aws_ecs_task_definition.app.arn
+  desired_count                     = var.desired_count
+  depends_on                        = [aws_lb_listener.http]
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 120
+
+  network_configuration {
+    subnets          = aws_subnet.private_app[*].id
+    security_groups  = [aws_security_group.ecs_tasks.id]
+    assign_public_ip = false
+  }
+
+  load_balancer {
+    target_group_arn = aws_lb_target_group.app.arn
+    container_name   = "app"
+    container_port   = var.container_port
+  }
+
+}
+

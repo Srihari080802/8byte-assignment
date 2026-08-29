@@ -10,7 +10,7 @@ resource "aws_db_subnet_group" "rds_subnet_group" {
 resource "random_password" "password" {
   length           = 16
   special          = true
-  override_special = "!#$%&*()-_=+[]{}<>:?"
+  override_special = "!*()-_=+"
 }
 
 
@@ -44,10 +44,6 @@ resource "aws_db_instance" "default" {
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id = aws_secretsmanager_secret.rds_db_secret.id
   secret_string = jsonencode({
-    username = var.db_username
-    password = random_password.password.result
-    host     = aws_db_instance.default.address
-    port     = 5432
-    dbname   = var.db_name
+    DATABASE_URL = "postgresql://${var.db_username}:${random_password.password.result}@${aws_db_instance.default.address}:5432/${var.db_name}"
   })
 }

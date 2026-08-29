@@ -1,5 +1,5 @@
 resource "aws_lb" "alb" {
-  name               = "alb"
+  name               = "${var.project_name}-alb"
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
@@ -20,7 +20,7 @@ resource "aws_lb_target_group" "app" {
   target_type = "ip"
 
   health_check {
-    path                = "/"
+    path                = "/health"
     matcher             = "200"
     interval            = 30
     timeout             = 5
