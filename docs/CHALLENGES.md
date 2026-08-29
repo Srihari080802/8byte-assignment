@@ -192,3 +192,65 @@ WSL integration was already toggled on in Docker Desktop.
 or not the engine is up, and the CLI shim is only available while it runs.
 
 **Resolution:** Started Docker Desktop.
+
+## OIDC role assumption failed with no diagnostic detail
+
+**Issue:** The deploy workflow failed at the credentials step with
+`Could not assume role with OIDC: Not authorized to perform
+sts:AssumeRoleWithWebIdentity`, after twelve retry attempts.
+
+**Cause:** The trust policy expected a subject claim of
+`repo:Srihari080802/8byte-assignment:*`, following the format shown in AWS and
+GitHub documentation. GitHub now issues **immutable subject claims** for
+repositories created or renamed after 15 July 2026, embedding numeric user and
+repository IDs:
+`repo:Srihari080802@106571747/8byte-assignment@1349274357`. The setting is enabled
+automatically and cannot be disabled. The two strings never matched, so the
+condition failed.
+
+**Resolution:** Copied the exact prefix from Settings → Actions → OIDC and used it
+as the `github_repo` variable value. The error message names neither the claim
+received nor the condition that failed, so diagnosis required eliminating each
+possibility in turn: verifying the trust policy document, the OIDC provider's
+client ID list, the canonical username casing via `gh api user`, and the repository
+workflow permissions, before finding the subject claim configuration page.
+
+## Dependency scan failed the build despite continue-on-error
+
+**Issue:** `pip-audit` reported nine known vulnerabilities in Starlette 0.46.2 and
+exited non-zero, failing the job even though the step was marked
+`continue-on-error: true`.
+
+**Cause:** The step property alone did not suppress the job-level failure in this
+configuration.
+
+**Resolution:** Appended `|| true` to the command so the shell returns zero
+regardless. The findings still print in full, so the vulnerabilities are visible
+rather than suppressed. The underlying CVEs stem from the Starlette pin required by
+the sample application's older `TemplateResponse` signature — recorded as immediate
+future work, since migrating six template calls would allow the pin to be removed.
+
+## ECS service cycled through both deployments after a task definition update
+
+**Issue:** After updating `container_image` and applying, CloudWatch logs continued
+showing nginx entrypoint output rather than the application, and the service
+reported `failedTasks: 3` against the previous revision.
+
+**Cause:** ECS rolls deployments gradually. The previous revision's tasks were still
+being health-checked and replaced while the new revision was starting, so three
+deployments appeared simultaneously in `describe-services`.
+
+**Resolution:** Forced the rollout with `aws ecs update-service
+--force-new-deployment` and confirmed the primary deployment's task definition ARN
+ended in `:2`. Stale deployments drained once one healthy task stabilised.
+
+## Uncommitted changes appeared on the wrong branch
+
+**Issue:** Terraform changes made while on `main` were visible after switching to a
+new branch.
+
+**Cause:** Uncommitted working directory changes are not associated with a branch;
+git carries them across checkouts.
+
+**Resolution:** Switched back to `main` and committed there. Understanding this
+avoids the instinct to stash or re-create work unnecessarily.
