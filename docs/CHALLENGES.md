@@ -222,3 +222,17 @@ only knows the legacy account mapping.
 **Resolution:** Changed the bucket policy principal to the service form and added an
 `aws:SourceAccount` condition, so only this account's load balancers can write to
 the bucket.
+
+## Fresh apply fails until an image exists in ECR
+
+**Issue:** After a destroy/apply cycle, tasks looped for twenty minutes with
+`CannotPullContainerError: ... 8byte-app:latest: not found`.
+
+**Cause:** `terraform destroy` removes the ECR repository along with its images
+(`force_delete = true`). The subsequent apply recreates an empty repository, but
+`container_image` still points at `:latest`, which no longer exists.
+
+**Resolution:** After a rebuild, push an image before the service can start —
+either manually or by letting the pipeline run. Terraform cannot express this
+ordering because the image is produced outside its graph. A production setup would
+keep the repository outside the destroyable stack.
