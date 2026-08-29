@@ -105,3 +105,90 @@ before running `fmt`.
 **Cause:** Habit from C-style languages.
 
 **Resolution:** HCL separates arguments with newlines, not semicolons.
+
+## ECS service created before the secret had a value
+
+**Issue:** Three tasks failed to start with `ResourceInitializationError: unable to
+retrieve secret from asm ... ResourceNotFoundException: Secrets Manager can't find
+the specified secret value for staging label: AWSCURRENT`.
+
+**Cause:** Terraform created the ECS service at 06:37, but
+`aws_secretsmanager_secret_version` only completed at 06:44 after RDS finished
+provisioning. The secret container existed; its value did not. There is no attribute
+reference between the service and the secret version, so Terraform's implicit
+dependency graph did not order them.
+
+**Resolution:** Added `aws_secretsmanager_secret_version.db` to the service's
+`depends_on`. Note that `depends_on` changes never appear in a plan diff, since they
+affect Terraform's ordering rather than AWS state.
+
+## Health check grace period killed tasks during startup
+
+**Issue:** Tasks were repeatedly marked unhealthy and replaced, visible in service
+events as "(port 8000) is unhealthy ... due to (reason Health checks failed)".
+
+**Cause:** `healthCheckGracePeriodSeconds` defaults to 0. The application runs
+`wait_for_db`, creates tables, then starts uvicorn — roughly 20-30 seconds. The ALB
+began health checking immediately, failed, and ECS replaced the task before it could
+finish starting.
+
+**Resolution:** Set `health_check_grace_period_seconds = 120` on the ECS service.
+
+## Local Python version incompatible with pinned dependencies
+
+**Issue:** `pip install -r requirements.txt` failed building `pydantic-core` with
+"the configured Python interpreter version (3.14) is newer than PyO3's maximum
+supported version (3.13)".
+
+**Cause:** Ubuntu 26.04 ships Python 3.14. `pydantic-core==2.23.4` has no prebuilt
+wheel for 3.14, so pip attempted a source build through Rust, and PyO3 0.22 does not
+support that version. The container was unaffected because it pins `python:3.11-slim`.
+
+**Resolution:** Ran the test suite inside the container with a volume mount rather
+than a local virtualenv, which also matches how CI executes tests.
+
+## Removing a dependency pin broke every template route
+
+**Issue:** The integration test failed with `TypeError: unhashable type: 'dict'`
+inside Jinja2's template cache.
+
+**Cause:** `starlette==1.3.1` was removed from requirements because it appeared
+inconsistent with the FastAPI version. Unpinned resolution then installed Starlette
+1.6.0, which changed the `TemplateResponse` signature. The old form,
+`TemplateResponse(name, {"request": request})`, causes Jinja2 to build a cache key
+containing a dict.
+
+**Resolution:** Pinned `prometheus-fastapi-instrumentator==7.0.0` and
+`starlette<0.47`. The correct long-term fix is migrating the six template calls to
+`TemplateResponse(request, name, context)`; recorded as future work.
+
+## ECR repository blocked terraform destroy
+
+**Issue:** `RepositoryNotEmptyException: The repository with name '8byte-app' cannot
+be deleted because it still contains images`.
+
+**Cause:** ECR refuses deletion of a non-empty repository by default.
+
+**Resolution:** Set `force_delete = true` on the repository. Appropriate for an
+ephemeral environment; production would leave this false so an accidental destroy
+cannot remove image history.
+
+## RDS identifier naming constraint
+
+**Issue:** `first character of "identifier" must be a letter`.
+
+**Cause:** `var.project_name` is "8byte", so the identifier became `8byte-postgres`.
+AWS naming rules vary per service: ALB names permit a leading digit, RDS identifiers
+do not, and DB names disallow hyphens entirely.
+
+**Resolution:** Prefixed the identifier as `db-8byte-postgres`.
+
+## Docker CLI unavailable in WSL despite integration being enabled
+
+**Issue:** `The command 'docker' could not be found in this WSL 2 distro`, although
+WSL integration was already toggled on in Docker Desktop.
+
+**Cause:** Docker Desktop was not running. The integration setting persists whether
+or not the engine is up, and the CLI shim is only available while it runs.
+
+**Resolution:** Started Docker Desktop.

@@ -99,3 +99,9 @@ variable "desired_count" {
   description = "Describes the desired count used for the task"
   default     = 1
 }
+
+variable "github_repo" {
+  type        = string
+  description = "Describes the github repo name"
+  default     = "Srihari080802/8byte-assignment"
+}
