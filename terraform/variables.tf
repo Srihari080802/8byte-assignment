@@ -100,8 +100,10 @@ variable "desired_count" {
   default     = 1
 }
 
+# GitHub now issues immutable subject claims containing numeric user and
+# repository IDs. Value copied from Settings > Actions > OIDC.
 variable "github_repo" {
   type        = string
   description = "Describes the github repo name"
-  default     = "Srihari080802/8byte-assignment"
+  default     = "Srihari080802@106571747/8byte-assignment@1349274357"
 }
