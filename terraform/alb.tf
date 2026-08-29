@@ -7,6 +7,12 @@ resource "aws_lb" "alb" {
 
   enable_deletion_protection = false
 
+  access_logs {
+    bucket  = aws_s3_bucket.alb_logs.id
+    prefix  = "alb"
+    enabled = true
+  }
+
   tags = {
     Name = "${var.project_name}-alb"
   }

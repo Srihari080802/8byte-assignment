@@ -1,6 +1,9 @@
 resource "aws_ecs_cluster" "app" {
   name = "${var.project_name}-ecs-cluster"
-
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
   tags = {
     Name = "${var.project_name}-ecs-cluster"
   }
@@ -62,7 +65,7 @@ resource "aws_ecs_service" "app" {
   cluster                           = aws_ecs_cluster.app.id
   task_definition                   = aws_ecs_task_definition.app.arn
   desired_count                     = var.desired_count
-  depends_on                        = [aws_lb_listener.http]
+  depends_on                        = [aws_lb_listener.http, aws_secretsmanager_secret_version.db]
   launch_type                       = "FARGATE"
   health_check_grace_period_seconds = 120
 
